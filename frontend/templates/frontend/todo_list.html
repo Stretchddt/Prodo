@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+    <br>
+    <div class="container">
+        <div class="row">
+            <div class="col">
+                <div class="card text-center">
+                    <div id='form-wrapper' class="card-body">
+                        <form action="" method="post" id='form'>
+                            <input id='todo' name='todo' class="form-control" type="text" placeholder="Enter a todo...">
+                            <br>
+                            <button class="btn btn-outline-dark btn-lg" type="submit">Add</button>
+                        </form>
+                    </div>
+                </div>
+                <br>
+                <div>
+                    <div class="card">
+                        <div class="card-body">
+                            <ul id='todo-list' class="list-group">
+
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock content %}
+
+{% block script %}
+
+    <script>
+        
+        const todoList = document.getElementById('todo-list')
+        const input = document.getElementById('todo')
+        const form = document.getElementById('form')
+        const url = 'http://localhost:8000/api/'
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    // Does this cookie string begin with the name we want?
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+            }
+        }
+    }
+    return cookieValue;
+}
+const csrftoken = getCookie('csrftoken');
+
+        let createNode = (el) => {
+            return document.createElement(el)
+        }
+
+        let append = (parent, child) => {
+            return parent.appendChild(child)
+        }
+
+        let getTodos = () => {
+            todoList.innerHTML = ''
+            fetch(url).then(resp => resp.json()).then(data => {
+                return data.map(todo => {
+
+                    let task = todo.todo
+                    let id = todo.id
+                    let completed = todo.completed
+
+                    let li = createNode('li')
+                    li.setAttribute('id', id)
+                    li.setAttribute('class', 'text-center todo-text')
+                    li.innerText = task
+
+                    let done = createNode('button')
+                    done.setAttribute('id', id)
+                    done.setAttribute('class', 'btn btn-outline-dark float-end delete')
+                    done.innerText = 'Delete'
+
+                    let update = createNode('button')
+                    update.innerText = 'Update'
+                    update.setAttribute('id', 'update')
+                    update.setAttribute('class', 'btn btn-outline-dark float-start edit')
+                    update.setAttribute('id', `${todo.id}`)
+
+                    let br = createNode('br')
+
+                    append(todoList, li)
+                    append(li, update)
+                    append(li, done)
+                    append(todoList, br)
+
+                    const edit = document.querySelectorAll('.edit')
+                    const editTodos = Array.from(edit)
+                    for(let i= 0; i < editTodos.length; i++){
+                        let currentTodo = editTodos[i]
+                        editTodos[i].addEventListener('click',function(){
+                            updateTodo(currentTodo)
+                        })
+                        
+                        }
+
+                        const deleteList = document.querySelectorAll('.delete')
+                        const dList = Array.from(deleteList)
+                        for (let i = 0; i < dList.length; i++){
+                            let currentDelete = dList[i]
+                            dList[i].addEventListener('click', function(){
+                                deleteTodo(currentDelete)
+                            })
+                        }
+
+                    })
+
+                })
+            }
+        
+        
+        getTodos()
+
+        
+        form.addEventListener('submit', (e) => {
+            e.preventDefault()
+            let todoInput = input.value
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                },
+                body: JSON.stringify({
+                    'todo': todoInput
+                })
+            }).then(res => {
+                getTodos()
+                document.getElementById('form').reset()
+            })
+        })
+
+        const updateTodo = (current) => {
+
+            let id = current.getAttribute('id')
+            let url = `http://localhost:8000/api/edit/${id}/`
+            fetch(url).then(res => res.json()).then(data => {
+                let todo = data.todo
+                input.value = todo
+            })
+
+            fetch(url, {
+                'method': 'PUT',
+                headers: {
+                    'Content-type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                },
+                body: JSON.stringify({
+                    'id': id,
+                    'todo': input.value
+                })
+            }).then(res => res.json()).then(data => console.log(data))
+        }
+
+        const deleteTodo = (current) => {
+            let id = current.getAttribute('id')
+            let url = `http://localhost:8000/api/edit/${id}/`
+            fetch(url, {
+                'method': 'DELETE',
+                headers: {
+                    'Content-type': 'application/json',
+                    'X-CSRFToken': csrftoken,
+                }
+            }).then(res => {
+                getTodos()
+            })
+        }
+
+    </script>
+
+{% endblock script %}
